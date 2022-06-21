@@ -2,6 +2,6 @@
 This is an event management platform built on Redis
 
 ### Technology
-* Node.js - Express
+* Express - Node.js
 * Redis - Database
 * RediSearch - Redis module
