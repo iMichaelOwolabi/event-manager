@@ -1,5 +1,6 @@
 import express from 'express';
 import { config } from 'dotenv';
+import { redisClient } from './db/index.js';
 
 config();
 
