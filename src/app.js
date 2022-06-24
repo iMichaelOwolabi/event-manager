@@ -1,6 +1,7 @@
 import express from 'express';
 import { config } from 'dotenv';
 import { redisClient } from './db/index.js';
+import { authRouter } from './routes/authRouter.js';
 
 config();
 
@@ -10,7 +11,10 @@ app.use(express.json());
 
 const port = process.env.PORT ?? 3000;
 
-app.get('', (req, res) => {
+app.use('/api/v1/auth', authRouter);
+app.use('/api/v1/auth', authRouter);
+
+app.get('/api/v1', (req, res) => {
   res.send('Welcome to the event management platform built on redis');
 });
 
