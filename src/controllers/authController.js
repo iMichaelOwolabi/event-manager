@@ -1,5 +1,6 @@
 import { redisClient } from '../db/index.js';
 import { ulid } from 'ulid';
+import { generateToken } from '../utils/jwtHelper.js';
 
 const createAccount = async (req, res) => {
   try {
@@ -11,13 +12,14 @@ const createAccount = async (req, res) => {
     const userEmail = await redisClient.hgetall(`user:${email}`);
 
     if (userEmail.email === email) {
-      return res.status(409).send({
+    return res.status(409).send({
         error: true,
         message: 'Account with that email already exists',
         data: '',
       });
     }
 
+    // Create user account
     const createUser = await redisClient.execute([
       'HSET',
       `user:${email}`,
@@ -35,15 +37,21 @@ const createAccount = async (req, res) => {
       `${displayName}`,
     ]);
 
+    // Generate token for the user
+    const token = await generateToken({ userKey: `user:${email}` })
+
     if (createUser && typeof createUser === 'number') {
       return res.status(201).send({
         error: false,
         message: 'Account succesfully created',
-        data: '',
+        data: { token },
       });
     }
   } catch (error) {
-    return `Server error, please try again later. ${error}`;
+    return res.status(500).send({
+      error: true,
+      message: `Server error, please try again later. ${error}`
+    });
   }
 };
 
@@ -54,8 +62,6 @@ const login = async (req, res) => {
     // Get the user details from Redis
     const user = await redisClient.hgetall(`user:${email}`);
 
-    console.log(user);
-
     if (!user.email || user.password !== password) {
       return res.status(401).send({
         error: true,
@@ -64,11 +70,13 @@ const login = async (req, res) => {
     }
 
     // Generate a token for the user to perform other operations
-    
+
+    const token = await generateToken({ userKey: `user:${email}` })
+
     return res.status(200).send({
       error: false,
       message: 'Login successfully',
-      data: user,
+      data: { token },
     });
   } catch (error) {
     return `Server error, please try again later. ${error}`;
