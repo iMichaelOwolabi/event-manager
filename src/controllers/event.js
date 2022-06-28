@@ -103,7 +103,7 @@ const getEventsByUserId = async (req, res) => {
 
     const { page: offset, limit: count } = preparePagination(page, limit);
 
-    // Fetch all events sorting by the date created which ensures that the latest one come up first
+    // Fetch all host events sorting by the date created which ensures that the latest one come up first
     const userEvents = await eventRepository
       .search()
       .where('userId')
@@ -137,4 +137,58 @@ const getEventsByUserId = async (req, res) => {
   }
 };
 
-export { createEvent, getAllEvents, getEventById, getEventsByUserId };
+const getEventsNearMe = async (req, res) => {
+  try {
+    const lon = Number(req.query.lon);
+    const lat = Number(req.query.lat);
+    const distanceInKm = Number(req.query.distanceInKm) ?? 10;
+
+    const { page, limit } = req.query;
+
+    const { page: offset, limit: count } = preparePagination(page, limit);
+
+    // Fetch all events 10 KM radius from the location supplied
+    const eventsNearMe = await eventRepository
+      .search()
+      .where('locationPoint')
+      .inRadius(
+        (circle) => circle.origin(lon, lat).radius(Number(distanceInKm)).km
+      )
+      .sortDescending('createdAt')
+      .return.page(offset, count);
+
+    // Get the total number of events according to the search queries in the DB
+    const totalEvents = await eventRepository
+      .search()
+      .where('locationPoint')
+      .inRadius(
+        (circle) => circle.origin(lon, lat).radius(Number(distanceInKm)).km
+      )
+      .return.count();
+
+    const totalPages = getTotalPages(totalEvents, count);
+
+    return res.status(200).send({
+      error: false,
+      message: 'Here are the events happening near you.',
+      data: {
+        eventsNearMe,
+        totalEvents,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    return res.status(500).send({
+      error: true,
+      message: `Server error, please try again later. ${error}`,
+    });
+  }
+};
+
+export {
+  createEvent,
+  getAllEvents,
+  getEventById,
+  getEventsByUserId,
+  getEventsNearMe,
+};
