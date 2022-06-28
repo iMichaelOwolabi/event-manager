@@ -49,7 +49,10 @@ const getAllEvents = async (req, res) => {
     const { page: offset, limit: count } = preparePagination(page, limit);
 
     // Fetch all events sorting by the date created which ensures that the latest one come up first
-    const allEvents = await eventRepository.search().sortDescending('createdAt').return.page(offset, count);
+    const allEvents = await eventRepository
+      .search()
+      .sortDescending('createdAt')
+      .return.page(offset, count);
 
     // Get the total number of events in the DB
     const totalEvents = await eventRepository.search().return.count();
@@ -78,8 +81,7 @@ const getEventById = async (req, res) => {
     const { eventId } = req.params;
 
     // Fetch all events sorting by the date created which ensures that the latest one come up first
-    const event = await eventRepository
-      .fetch(eventId);
+    const event = await eventRepository.fetch(eventId);
 
     return res.status(200).send({
       error: false,
@@ -94,4 +96,45 @@ const getEventById = async (req, res) => {
   }
 };
 
-export { createEvent, getAllEvents, getEventById };
+const getEventsByUserId = async (req, res) => {
+  try {
+    const { userId } = req.validatedToken;
+    const { page, limit } = req.query;
+
+    const { page: offset, limit: count } = preparePagination(page, limit);
+
+    // Fetch all events sorting by the date created which ensures that the latest one come up first
+    const userEvents = await eventRepository
+      .search()
+      .where('userId')
+      .equal(userId)
+      .sortDescending('createdAt')
+      .return.page(offset, count);
+
+    // Get the total number of events in the DB
+    const totalEvents = await eventRepository
+      .search()
+      .where('userId')
+      .equal(userId)
+      .return.count();
+
+    const totalPages = getTotalPages(totalEvents, count);
+
+    return res.status(200).send({
+      error: false,
+      message: 'Events retrieved successfylly',
+      data: {
+        userEvents,
+        totalEvents,
+        totalPages,
+      },
+    });
+  } catch (error) {
+    return res.status(500).send({
+      error: true,
+      message: `Server error, please try again later. ${error}`,
+    });
+  }
+};
+
+export { createEvent, getAllEvents, getEventById, getEventsByUserId };
