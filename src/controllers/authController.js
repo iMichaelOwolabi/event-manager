@@ -1,5 +1,5 @@
-import { redisClient } from '../db/index.js';
 import { ulid } from 'ulid';
+import { redisClient } from '../db/index.js';
 import { generateToken } from '../utils/jwtHelper.js';
 
 const createAccount = async (req, res) => {
@@ -38,7 +38,7 @@ const createAccount = async (req, res) => {
     ]);
 
     // Generate token for the user
-    const token = await generateToken({ userKey: `user:${email}` })
+    const token = await generateToken({ userKey: `user:${email}`, userId })
 
     if (createUser && typeof createUser === 'number') {
       return res.status(201).send({
@@ -71,7 +71,7 @@ const login = async (req, res) => {
 
     // Generate a token for the user to perform other operations
 
-    const token = await generateToken({ userKey: `user:${email}` })
+    const token = await generateToken({ userKey: `user:${email}`, userId: user.id })
 
     return res.status(200).send({
       error: false,

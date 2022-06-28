@@ -11,7 +11,7 @@ export const generateToken = async payload => {
 
 export const jwtValidator = async token => {
   try {
-    const decodedToken = await jwt.verify(token, secret);
+    const decodedToken = await jwt.verify(token, process.env.JWTSECRET,);
     return decodedToken;
   } catch (error) {
     return false;
