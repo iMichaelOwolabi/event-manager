@@ -14,9 +14,9 @@ const createEvent = async (req, res) => {
       imageUrl,
     } = req.body;
     const event = await eventRepository.createAndSave({
-      title,
+      title: title.toLowerCase(),
       description,
-      category,
+      category: category.toLowerCase(),
       venue,
       locationPoint,
       startDate,
@@ -147,7 +147,7 @@ const getEventsNearMe = async (req, res) => {
 
     const { page: offset, limit: count } = preparePagination(page, limit);
 
-    // Fetch all events 10 KM radius from the location supplied
+    // Fetch all events in KM radius from the location supplied
     const eventsNearMe = await eventRepository
       .search()
       .where('locationPoint')
@@ -185,10 +185,91 @@ const getEventsNearMe = async (req, res) => {
   }
 };
 
+const searchEvents = async (req, res) => {
+  try {
+    const searchKey = Object.keys(req.query)[0];
+    const searchValue = Object.values(req.query)[0];
+
+    const { page, limit } = req.query;
+
+    const { page: offset, limit: count } = preparePagination(page, limit);
+
+    if (!searchKey) {
+      return await getAllEvents(req, res);
+    }
+
+    // Determine the search criteria and search events accordingly
+    let searchResult;
+    if (searchKey && searchKey.toLowerCase() === 'category') {
+      searchResult = await searchBycategory(searchValue.toLowerCase(), offset, count);
+    }
+
+    if (searchKey && searchKey.toLowerCase() === 'title') {
+      searchResult = await searchBytitle(searchValue.toLowerCase(), offset, count);
+    }
+
+    return res.status(200).send({
+      error: false,
+      message: 'Events based on your search criteria.',
+      data: searchResult,
+    });
+  } catch (error) {
+    return res.status(500).send({
+      error: true,
+      message: `Server error, please try again later. ${error}`,
+    });
+  }
+};
+
+// Search events by category
+const searchBycategory = async (category, offset, count) => {
+  const events = await eventRepository
+    .search()
+    .where('category')
+    .eq(category)
+    .sortDescending('createdAt')
+    .return.page(offset, count);
+  const totalEvents = await eventRepository
+    .search()
+    .where('category')
+    .eq(category)
+    .return.count();
+  const totalPages = getTotalPages(totalEvents, count);
+
+  return {
+    events,
+    totalEvents,
+    totalPages,
+  };
+};
+
+// Perform full text search on the title field
+const searchBytitle = async (title, offset, count) => {
+  const events = await eventRepository
+    .search()
+    .where('title')
+    .match(title)
+    .sortDescending('createdAt')
+    .return.page(offset, count);
+  const totalEvents = await eventRepository
+    .search()
+    .where('title')
+    .match(title)
+    .return.count();
+  const totalPages = getTotalPages(totalEvents, count);
+
+  return {
+    events,
+    totalEvents,
+    totalPages,
+  };
+};
+
 export {
   createEvent,
   getAllEvents,
   getEventById,
   getEventsByUserId,
   getEventsNearMe,
+  searchEvents,
 };
