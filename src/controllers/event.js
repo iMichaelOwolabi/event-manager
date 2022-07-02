@@ -80,8 +80,16 @@ const getEventById = async (req, res) => {
   try {
     const { eventId } = req.params;
 
-    // Fetch all events sorting by the date created which ensures that the latest one come up first
+    // Fetch a single event by ID
     const event = await eventRepository.fetch(eventId);
+
+    if (!event) {
+      return res.status(404).send({
+        error: true,
+        message: 'Event not found.',
+        data: event,
+      });
+    }
 
     return res.status(200).send({
       error: false,
