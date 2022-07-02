@@ -1,4 +1,5 @@
 import { ulid } from 'ulid';
+import { hash, compare } from 'bcrypt';
 import { redisClient } from '../db/index.js';
 import { generateToken } from '../utils/jwtHelper.js';
 
@@ -19,6 +20,9 @@ const createAccount = async (req, res) => {
       });
     }
 
+    // Encrypt the users password before saving
+    const hashedPassword = await hash(password, 10);
+
     // Create user account
     const createUser = await redisClient.execute([
       'HSET',
@@ -32,7 +36,7 @@ const createAccount = async (req, res) => {
       'email',
       `${email}`,
       'password',
-      `${password}`,
+      `${hashedPassword}`,
       'displayName',
       `${displayName}`,
     ]);
@@ -62,7 +66,9 @@ const login = async (req, res) => {
     // Get the user details from Redis
     const user = await redisClient.hgetall(`user:${email}`);
 
-    if (!user.email || user.password !== password) {
+    const validaPassword = await compare(password, user.password);
+
+    if (!user.email || !validaPassword) {
       return res.status(401).send({
         error: true,
         message: 'Invlaid email or password',
