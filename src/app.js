@@ -1,11 +1,14 @@
 import express from 'express';
 import { config } from 'dotenv';
+import cors from 'cors';
 import { authRouter } from './routes/authRouter.js';
 import { eventRouter } from './routes/event.js';
 
 config();
 
 const app = express();
+
+app.use(cors());
 
 app.use(express.json());
 const port = process.env.PORT ?? 3000;
